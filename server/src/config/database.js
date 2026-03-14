@@ -5,6 +5,27 @@ const logger = require("../utils/logger");
 
 const isProduction = process.env.NODE_ENV === "production";
 
+let sslConfig = {};
+if (isProduction) {
+  if (process.env.DB_SSL_CERT) {
+    // Base64 cert from Render env variable
+    sslConfig = {
+      ssl: {
+        ca: Buffer.from(process.env.DB_SSL_CERT, "base64").toString("utf-8"),
+        rejectUnauthorized: true,
+      },
+    };
+  } else if (fs.existsSync(path.join(__dirname, "ca.pem"))) {
+    // Local ca.pem file
+    sslConfig = {
+      ssl: {
+        ca: fs.readFileSync(path.join(__dirname, "ca.pem")),
+        rejectUnauthorized: true,
+      },
+    };
+  }
+}
+
 const sequelize = new Sequelize(
   process.env.DB_NAME,
   process.env.DB_USER,
@@ -14,16 +35,7 @@ const sequelize = new Sequelize(
     port: parseInt(process.env.DB_PORT) || 3306,
     dialect: "mysql",
     logging: false,
-    dialectOptions: isProduction
-      ? {
-          ssl: {
-            ca: Buffer.from(process.env.DB_SSL_CERT, "base64").toString(
-              "utf-8"
-            ),
-            rejectUnauthorized: true,
-          },
-        }
-      : {},
+    dialectOptions: sslConfig,
   }
 );
 
