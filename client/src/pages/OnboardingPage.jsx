@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { BotsAPI, KnowledgeAPI } from '../services/api';
 import { Input, Button, Card, Toggle } from '../components/ui/index';
 import toast from 'react-hot-toast';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 
 const STEPS = [
   { n: 1, title: 'Business Info',    sub: 'Name, type & greeting' },
@@ -13,37 +14,16 @@ const STEPS = [
 ];
 
 const MODELS = [
-  {
-    id: "gpt-4o",
-    icon: "🧠",
-    name: "GPT-4o",
-    desc: "OpenAI's most capable.",
-    tag: "⚡ Premium",
-    tagColor: "#ffb400",
-  },
-  {
-    id: "claude-3-5-sonnet-20241022",
-    icon: "✦",
-    name: "Claude 3.5",
-    desc: "Best for customer service.",
-    tag: "✓ Recommended",
-    tagColor: "#00D46A",
-  },
-  {
-    id: "groq-llama-3.3-70b-versatile",
-    icon: "🔥",
-    name: "Mixtral 8x7B",
-    desc: "Great for multilingual.",
-    tag: "🚀 Fast",
-    tagColor: "#a855f7",
-  },
+  { id: 'gpt-4o',                       icon: '🧠', name: 'GPT-4o',         desc: "OpenAI's most capable.",     tag: '⚡ Premium',    tagColor: '#ffb400' },
+  { id: 'claude-3-5-sonnet-20241022',   icon: '✦',  name: 'Claude 3.5',     desc: 'Best for customer service.', tag: '✓ Recommended', tagColor: '#00D46A' },
+  { id: 'groq-llama-3.3-70b-versatile', icon: '🔥', name: 'Llama 3.3 70B',  desc: 'Fastest via Groq.',          tag: '🚀 Ultra Fast',  tagColor: '#a855f7' },
 ];
 
 const TONES = [
-  { id: 'friendly',     emoji: '😊', name: 'Friendly',     desc: 'Warm & conversational' },
-  { id: 'professional', emoji: '💼', name: 'Professional',  desc: 'Formal & precise' },
-  { id: 'playful',      emoji: '🎉', name: 'Playful',       desc: 'Fun & energetic' },
-  { id: 'concise',      emoji: '⚡', name: 'Concise',       desc: 'Short & direct' },
+  { id: 'friendly',     emoji: '😊', name: 'Friendly',    desc: 'Warm & conversational' },
+  { id: 'professional', emoji: '💼', name: 'Professional', desc: 'Formal & precise' },
+  { id: 'playful',      emoji: '🎉', name: 'Playful',      desc: 'Fun & energetic' },
+  { id: 'concise',      emoji: '⚡', name: 'Concise',      desc: 'Short & direct' },
 ];
 
 export default function OnboardingPage() {
@@ -53,6 +33,7 @@ export default function OnboardingPage() {
   const [botId, setBotId] = useState(null);
   const [error, setError] = useState('');
   const [launched, setLaunched] = useState(false);
+  const [stepsOpen, setStepsOpen] = useState(false);
 
   // Step 1
   const [bizName, setBizName] = useState('');
@@ -66,21 +47,21 @@ export default function OnboardingPage() {
   const [kbUrl, setKbUrl] = useState('');
 
   // Step 3
-  const [model, setModel]         = useState('claude-3-5-sonnet-20241022');
-  const [tone, setTone]           = useState('friendly');
-  const [temp, setTemp]           = useState(40);
+  const [model, setModel]           = useState('claude-3-5-sonnet-20241022');
+  const [tone, setTone]             = useState('friendly');
+  const [temp, setTemp]             = useState(40);
   const [langDetect, setLangDetect] = useState(true);
   const [handoff, setHandoff]       = useState(true);
   const [leads, setLeads]           = useState(false);
 
   // Step 4
-  const [platform, setPlatform]   = useState('whatsapp'); // 'whatsapp' | 'telegram'
+  const [platform, setPlatform] = useState('whatsapp');
   const [waPhoneId, setWaPhoneId] = useState('');
   const [waToken, setWaToken]     = useState('');
   const [waNumber, setWaNumber]   = useState('');
   const [tgToken, setTgToken]     = useState('');
 
-  const go = (s) => { setError(''); setStep(s); };
+  const go = (s) => { setError(''); setStep(s); setStepsOpen(false); window.scrollTo(0,0); };
 
   const handleStep1 = async () => {
     if (!botName) return setError('Please give your bot a name.');
@@ -101,7 +82,7 @@ export default function OnboardingPage() {
     setLoading(true); setError('');
     try {
       for (const file of files) {
-        await KnowledgeAPI.upload(botId, file).catch(e => toast.error(`Failed to upload ${file.name}`));
+        await KnowledgeAPI.upload(botId, file).catch(() => toast.error(`Failed to upload ${file.name}`));
       }
       if (kbText.length >= 20) await KnowledgeAPI.addText(botId, kbText, 'Pasted FAQ').catch(() => {});
       if (kbUrl) await KnowledgeAPI.addUrl(botId, kbUrl, kbUrl).catch(() => {});
@@ -123,7 +104,6 @@ export default function OnboardingPage() {
   };
 
   const handleStep4 = async () => {
-    // Telegram path
     if (platform === 'telegram') {
       if (!tgToken) { go(5); return; }
       setLoading(true); setError('');
@@ -135,7 +115,6 @@ export default function OnboardingPage() {
       finally { setLoading(false); }
       return;
     }
-    // WhatsApp path
     if (!waPhoneId && !waToken && !waNumber) { go(5); return; }
     if (!waPhoneId || !waToken || !waNumber) return setError('Fill all 3 fields, or leave all empty to skip.');
     setLoading(true); setError('');
@@ -157,12 +136,12 @@ export default function OnboardingPage() {
   };
 
   if (launched) return (
-    <div className="min-h-screen bg-dark flex items-center justify-center">
-      <div className="text-center max-w-md p-8 animate-fadeUp">
+    <div className="min-h-screen bg-dark flex items-center justify-center px-4">
+      <div className="text-center max-w-md p-6 sm:p-8 animate-fadeUp">
         <div className="w-20 h-20 bg-green/15 border-2 border-green rounded-full flex items-center justify-center text-4xl mx-auto mb-8">🎉</div>
-        <h2 className="text-4xl font-extrabold font-syne text-white mb-3">Your bot is live!</h2>
-        <p className="text-muted2 mb-8"><strong className="text-green">{botName}</strong> is now active on WhatsApp.</p>
-        <button onClick={() => navigate('/dashboard')} className="btn-primary px-10 py-4 text-base">
+        <h2 className="text-3xl sm:text-4xl font-extrabold font-syne text-white mb-3">Your bot is live!</h2>
+        <p className="text-muted2 mb-8"><strong className="text-green">{botName}</strong> is now active and ready to chat.</p>
+        <button onClick={() => navigate('/dashboard')} className="btn-primary px-10 py-4 text-base w-full sm:w-auto">
           Go to Dashboard →
         </button>
       </div>
@@ -170,11 +149,12 @@ export default function OnboardingPage() {
   );
 
   return (
-    <div className="min-h-screen bg-dark flex">
-      {/* Sidebar */}
-      <aside className="w-72 bg-dark2 border-r border-border p-10 hidden lg:flex flex-col">
+    <div className="min-h-screen bg-dark flex flex-col lg:flex-row">
+
+      {/* ── Desktop Sidebar ───────────────────────── */}
+      <aside className="w-72 bg-dark2 border-r border-border p-10 hidden lg:flex flex-col shrink-0">
         <div className="font-syne font-extrabold text-lg text-white mb-9 flex items-center gap-2.5">
-          <div className="w-7 h-7 bg-green rounded-full flex items-center justify-center text-sm">💬</div>
+          <div className="w-7 h-7 bg-green rounded-full flex items-center justify-center text-sm shadow-[0_0_12px_rgba(0,212,106,0.4)]">💬</div>
           BotFlow
         </div>
         <p className="text-xs font-semibold text-muted uppercase tracking-widest mb-5">Setup Progress</p>
@@ -187,9 +167,9 @@ export default function OnboardingPage() {
               onClick={() => step > s.n && go(s.n)}
             >
               <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-bold shrink-0 transition-all ${
-                step > s.n  ? 'bg-green/15 border-green text-green' :
+                step > s.n   ? 'bg-green/15 border-green text-green' :
                 step === s.n ? 'bg-green border-green text-dark' :
-                'border-border text-muted'
+                               'border-border text-muted'
               }`}>
                 {step > s.n ? '✓' : s.n}
               </div>
@@ -203,12 +183,67 @@ export default function OnboardingPage() {
         <p className="text-xs text-muted">Need help? <a href="#" className="text-green">Read the guide →</a></p>
       </aside>
 
-      {/* Main */}
-      <div className="flex-1 flex flex-col">
+      {/* ── Mobile Header ─────────────────────────── */}
+      <div className="lg:hidden bg-dark2 border-b border-border sticky top-0 z-20">
+        {/* Logo + step indicator */}
+        <div className="flex items-center justify-between px-4 py-3.5">
+          <div className="flex items-center gap-2 font-syne font-extrabold text-white">
+            <div className="w-6 h-6 bg-green rounded-full flex items-center justify-center text-xs">💬</div>
+            BotFlow
+          </div>
+          <button
+            onClick={() => setStepsOpen(!stepsOpen)}
+            className="flex items-center gap-2 text-sm text-muted2 hover:text-white transition-colors"
+          >
+            <span className="text-green font-semibold">Step {step}/5</span>
+            <span className="text-xs text-muted">· {STEPS[step-1].title}</span>
+            {stepsOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          </button>
+        </div>
+
         {/* Progress bar */}
-        <div className="h-16 border-b border-border flex items-center px-10 gap-4 sticky top-0 bg-dark/85 backdrop-blur-sm z-10">
+        <div className="h-1 bg-dark3">
+          <div
+            className="h-full bg-gradient-to-r from-green/60 to-green rounded-full transition-all duration-500"
+            style={{ width: `${step * 20}%` }}
+          />
+        </div>
+
+        {/* Mobile steps dropdown */}
+        {stepsOpen && (
+          <div className="border-t border-border bg-dark2 px-4 py-3 space-y-1">
+            {STEPS.map(s => (
+              <div key={s.n}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${
+                  step === s.n ? 'bg-green/8' :
+                  step > s.n  ? 'cursor-pointer hover:bg-dark3' :
+                                 'opacity-40 pointer-events-none'
+                }`}
+                onClick={() => step > s.n && go(s.n)}
+              >
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center text-xs font-bold shrink-0 ${
+                  step > s.n   ? 'bg-green/15 border-green text-green' :
+                  step === s.n ? 'bg-green border-green text-dark' :
+                                  'border-border text-muted'
+                }`}>
+                  {step > s.n ? '✓' : s.n}
+                </div>
+                <div>
+                  <div className={`text-sm font-semibold font-syne ${step >= s.n ? 'text-white' : 'text-muted'}`}>{s.title}</div>
+                  <div className="text-xs text-muted">{s.sub}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── Main Content ──────────────────────────── */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Desktop progress bar */}
+        <div className="h-16 border-b border-border items-center px-8 sm:px-10 gap-4 sticky top-0 bg-dark/85 backdrop-blur-sm z-10 hidden lg:flex">
           <div className="flex-1 max-w-md bg-dark3 h-1.5 rounded-full overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-green-dim to-green rounded-full transition-all duration-500"
+            <div className="h-full bg-gradient-to-r from-green/60 to-green rounded-full transition-all duration-500"
               style={{ width: `${step * 20}%` }} />
           </div>
           <span className="text-sm text-muted">Step {step} of 5</span>
@@ -218,16 +253,21 @@ export default function OnboardingPage() {
           </div>
         </div>
 
-        <div className="flex-1 p-10 lg:p-16 max-w-2xl">
-          {error && <div className="bg-red/10 border border-red/30 text-red text-sm px-4 py-2.5 rounded-xl mb-6">{error}</div>}
+        <div className="flex-1 p-4 sm:p-8 lg:p-16 max-w-2xl w-full mx-auto lg:mx-0">
+          {error && (
+            <div className="bg-red/10 border border-red/30 text-red text-sm px-4 py-2.5 rounded-xl mb-6">
+              {error}
+            </div>
+          )}
 
-          {/* Step 1 */}
+          {/* ── Step 1 ── */}
           {step === 1 && (
             <div className="animate-fadeUp">
               <p className="text-xs font-semibold text-green uppercase tracking-widest mb-2">Step 1 — Business Info</p>
-              <h2 className="text-4xl font-extrabold font-syne text-white mb-2">Tell us about your business</h2>
-              <p className="text-muted2 text-base mb-10">This shapes your bot's personality and how it introduces itself.</p>
-              <div className="grid grid-cols-2 gap-4">
+              <h2 className="text-2xl sm:text-4xl font-extrabold font-syne text-white mb-2">Tell us about your business</h2>
+              <p className="text-muted2 text-sm sm:text-base mb-8">This shapes your bot's personality and how it introduces itself.</p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Input label="Business Name" placeholder="Pizza Palace" value={bizName} onChange={e=>setBizName(e.target.value)} />
                 <div className="mb-4">
                   <label className="label">Industry</label>
@@ -242,33 +282,33 @@ export default function OnboardingPage() {
               <Input label="Bot Name" placeholder="e.g. PizzaBot, Aria..." value={botName} onChange={e=>setBotName(e.target.value)} />
               <div className="mb-4">
                 <label className="label">Welcome Message</label>
-                <textarea className="input min-h-[120px]" placeholder="Hi! I'm your assistant. How can I help? 😊" value={welcome} onChange={e=>setWelcome(e.target.value)} />
+                <textarea className="input min-h-[100px] sm:min-h-[120px]" placeholder="Hi! I'm your assistant. How can I help? 😊" value={welcome} onChange={e=>setWelcome(e.target.value)} />
               </div>
-              <div className="flex justify-end mt-12 pt-8 border-t border-border">
-                <Button loading={loading} onClick={handleStep1}>Continue →</Button>
+              <div className="flex justify-end mt-8 sm:mt-12 pt-6 sm:pt-8 border-t border-border">
+                <Button loading={loading} onClick={handleStep1} className="w-full sm:w-auto">Continue →</Button>
               </div>
             </div>
           )}
 
-          {/* Step 2 */}
+          {/* ── Step 2 ── */}
           {step === 2 && (
             <div className="animate-fadeUp">
               <p className="text-xs font-semibold text-green uppercase tracking-widest mb-2">Step 2 — Knowledge Base</p>
-              <h2 className="text-4xl font-extrabold font-syne text-white mb-2">What should your bot know?</h2>
-              <p className="text-muted2 text-base mb-10">Upload documents or paste your FAQ.</p>
+              <h2 className="text-2xl sm:text-4xl font-extrabold font-syne text-white mb-2">What should your bot know?</h2>
+              <p className="text-muted2 text-sm sm:text-base mb-8">Upload documents or paste your FAQ.</p>
 
-              <label className="block border-2 border-dashed border-border rounded-2xl p-12 text-center cursor-pointer hover:border-green/40 transition-colors mb-4">
+              <label className="block border-2 border-dashed border-border rounded-2xl p-8 sm:p-12 text-center cursor-pointer hover:border-green/40 transition-colors mb-4">
                 <input type="file" multiple accept=".pdf,.txt,.doc,.docx,.csv" className="hidden"
                   onChange={e => setFiles(prev => [...prev, ...Array.from(e.target.files)])} />
-                <span className="text-4xl block mb-3">📂</span>
-                <p className="font-syne font-bold text-white mb-1">Drag & drop or click to upload</p>
-                <p className="text-muted text-sm">PDF, DOCX, TXT, CSV</p>
+                <span className="text-3xl sm:text-4xl block mb-3">📂</span>
+                <p className="font-syne font-bold text-white mb-1 text-sm sm:text-base">Tap to upload files</p>
+                <p className="text-muted text-xs sm:text-sm">PDF, DOCX, TXT, CSV</p>
                 {files.length > 0 && (
                   <div className="mt-4 flex flex-wrap gap-2 justify-center">
-                    {files.map((f,i) => (
+                    {files.map((f, i) => (
                       <span key={i} className="bg-dark3 border border-border text-xs px-3 py-1.5 rounded-lg flex items-center gap-2">
-                        📄 {f.name}
-                        <button onClick={e => { e.preventDefault(); setFiles(files.filter((_,j)=>j!==i)); }} className="text-muted hover:text-red">×</button>
+                        📄 <span className="truncate max-w-[100px]">{f.name}</span>
+                        <button onClick={e => { e.preventDefault(); setFiles(files.filter((_,j)=>j!==i)); }} className="text-muted hover:text-red shrink-0">×</button>
                       </span>
                     ))}
                   </div>
@@ -283,94 +323,102 @@ export default function OnboardingPage() {
 
               <div className="mb-4">
                 <label className="label">Paste your FAQ / Business Info</label>
-                <textarea className="input min-h-[140px]" placeholder="Q: What are your hours?&#10;A: Mon-Sat 11am-11pm" value={kbText} onChange={e=>setKbText(e.target.value)} />
+                <textarea className="input min-h-[120px] sm:min-h-[140px]" placeholder="Q: What are your hours?&#10;A: Mon-Sat 11am-11pm" value={kbText} onChange={e=>setKbText(e.target.value)} />
               </div>
               <Input label="Or enter a URL to scrape" type="url" placeholder="https://yoursite.com/faq" value={kbUrl} onChange={e=>setKbUrl(e.target.value)} />
 
-              <div className="flex justify-between mt-12 pt-8 border-t border-border">
-                <Button variant="secondary" onClick={() => go(1)}>← Back</Button>
-                <Button loading={loading} onClick={handleStep2}>Continue →</Button>
+              <div className="flex justify-between mt-8 sm:mt-12 pt-6 sm:pt-8 border-t border-border gap-3">
+                <Button variant="secondary" onClick={() => go(1)} className="flex-1 sm:flex-none">← Back</Button>
+                <Button loading={loading} onClick={handleStep2} className="flex-1 sm:flex-none">Continue →</Button>
               </div>
             </div>
           )}
 
-          {/* Step 3 */}
+          {/* ── Step 3 ── */}
           {step === 3 && (
             <div className="animate-fadeUp">
               <p className="text-xs font-semibold text-green uppercase tracking-widest mb-2">Step 3 — AI Model & Tone</p>
-              <h2 className="text-4xl font-extrabold font-syne text-white mb-2">Choose your AI brain</h2>
-              <p className="text-muted2 text-base mb-10">Pick the model and personality that fits your brand.</p>
+              <h2 className="text-2xl sm:text-4xl font-extrabold font-syne text-white mb-2">Choose your AI brain</h2>
+              <p className="text-muted2 text-sm sm:text-base mb-8">Pick the model and personality that fits your brand.</p>
 
               <label className="label">AI Model</label>
-              <div className="grid grid-cols-3 gap-4 mb-8">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-8">
                 {MODELS.map(m => (
                   <div key={m.id} onClick={() => setModel(m.id)}
-                    className={`card p-5 cursor-pointer transition-all relative ${model===m.id ? 'border-green bg-green/5' : 'hover:border-green/30'}`}>
-                    <div className={`w-5 h-5 rounded-full border-2 absolute top-3 right-3 flex items-center justify-center text-xs font-bold ${model===m.id ? 'bg-green border-green text-dark' : 'border-border'}`}>
-                      {model===m.id && '✓'}
+                    className={`card p-4 sm:p-5 cursor-pointer transition-all relative flex sm:flex-col items-center sm:items-start gap-3 sm:gap-0 ${
+                      model === m.id ? 'border-green bg-green/5' : 'hover:border-green/30'
+                    }`}>
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center text-xs font-bold shrink-0 sm:absolute sm:top-3 sm:right-3 ${
+                      model === m.id ? 'bg-green border-green text-dark' : 'border-border'
+                    }`}>
+                      {model === m.id && '✓'}
                     </div>
-                    <span className="text-2xl block mb-2">{m.icon}</span>
-                    <div className="font-syne font-bold text-white text-sm mb-1">{m.name}</div>
-                    <div className="text-xs text-muted2">{m.desc}</div>
-                    <span className="text-xs font-semibold mt-2 inline-block" style={{ color: m.tagColor }}>{m.tag}</span>
+                    <span className="text-2xl shrink-0 sm:mb-2">{m.icon}</span>
+                    <div className="flex-1 sm:flex-none">
+                      <div className="font-syne font-bold text-white text-sm mb-0.5 sm:mb-1">{m.name}</div>
+                      <div className="text-xs text-muted2 hidden sm:block">{m.desc}</div>
+                      <span className="text-xs font-semibold mt-1 sm:mt-2 inline-block" style={{ color: m.tagColor }}>{m.tag}</span>
+                    </div>
                   </div>
                 ))}
               </div>
 
               <label className="label">Personality</label>
-              <div className="grid grid-cols-4 gap-3 mb-8">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
                 {TONES.map(t => (
                   <div key={t.id} onClick={() => setTone(t.id)}
-                    className={`card p-4 cursor-pointer text-center transition-all ${tone===t.id ? 'border-green bg-green/5' : 'hover:border-green/30'}`}>
-                    <span className="text-2xl block mb-2">{t.emoji}</span>
-                    <div className="font-syne font-semibold text-sm text-white">{t.name}</div>
-                    <div className="text-xs text-muted mt-1">{t.desc}</div>
+                    className={`card p-3 sm:p-4 cursor-pointer text-center transition-all ${
+                      tone === t.id ? 'border-green bg-green/5' : 'hover:border-green/30'
+                    }`}>
+                    <span className="text-xl sm:text-2xl block mb-1.5 sm:mb-2">{t.emoji}</span>
+                    <div className="font-syne font-semibold text-xs sm:text-sm text-white">{t.name}</div>
+                    <div className="text-xs text-muted mt-0.5 sm:mt-1 hidden sm:block">{t.desc}</div>
                   </div>
                 ))}
               </div>
 
               <label className="label">Creativity — {temp}%</label>
               <input type="range" min="0" max="100" value={temp} onChange={e=>setTemp(Number(e.target.value))}
-                className="w-full h-1.5 bg-dark3 rounded-full appearance-none cursor-pointer accent-green mb-8" />
+                className="w-full h-2 bg-dark3 rounded-full appearance-none cursor-pointer accent-green mb-8" />
 
               <div className="space-y-3">
                 {[
-                  { label:'Auto Language Detection', sub:'Reply in the customer\'s language', value:langDetect, set:setLangDetect },
-                  { label:'Human Handoff',            sub:'Escalate to agent if unsure',      value:handoff, set:setHandoff },
-                  { label:'Collect Lead Info',         sub:'Ask for name & email first',       value:leads, set:setLeads },
+                  { label: 'Auto Language Detection', sub: "Reply in the customer's language", value: langDetect, set: setLangDetect },
+                  { label: 'Human Handoff',            sub: 'Escalate to agent if unsure',     value: handoff,    set: setHandoff },
+                  { label: 'Collect Lead Info',        sub: 'Ask for name & email first',      value: leads,      set: setLeads },
                 ].map(({ label, sub, value, set }) => (
-                  <div key={label} className="card px-5 py-4 flex items-center justify-between">
-                    <div>
+                  <div key={label} className="card px-4 sm:px-5 py-3.5 sm:py-4 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
                       <div className="text-sm font-semibold text-white">{label}</div>
-                      <div className="text-xs text-muted2">{sub}</div>
+                      <div className="text-xs text-muted2 hidden sm:block">{sub}</div>
                     </div>
                     <Toggle checked={value} onChange={set} />
                   </div>
                 ))}
               </div>
 
-              <div className="flex justify-between mt-12 pt-8 border-t border-border">
-                <Button variant="secondary" onClick={() => go(2)}>← Back</Button>
-                <Button loading={loading} onClick={handleStep3}>Continue →</Button>
+              <div className="flex justify-between mt-8 sm:mt-12 pt-6 sm:pt-8 border-t border-border gap-3">
+                <Button variant="secondary" onClick={() => go(2)} className="flex-1 sm:flex-none">← Back</Button>
+                <Button loading={loading} onClick={handleStep3} className="flex-1 sm:flex-none">Continue →</Button>
               </div>
             </div>
           )}
 
-          {/* Step 4 */}
+          {/* ── Step 4 ── */}
           {step === 4 && (
             <div className="animate-fadeUp">
               <p className="text-xs font-semibold text-green uppercase tracking-widest mb-2">Step 4 — Connect Platform</p>
-              <h2 className="text-4xl font-extrabold font-syne text-white mb-2">Choose your channel</h2>
-              <p className="text-muted2 text-base mb-8">Connect WhatsApp or Telegram. You can add more later.</p>
+              <h2 className="text-2xl sm:text-4xl font-extrabold font-syne text-white mb-2">Choose your channel</h2>
+              <p className="text-muted2 text-sm sm:text-base mb-6 sm:mb-8">Connect WhatsApp or Telegram. You can add more later.</p>
 
               {/* Platform tabs */}
-              <div className="flex gap-3 mb-8">
+              <div className="flex gap-2 sm:gap-3 mb-6 sm:mb-8">
                 {[
                   { id: 'whatsapp', icon: '💬', label: 'WhatsApp' },
                   { id: 'telegram', icon: '✈️', label: 'Telegram' },
                 ].map(p => (
                   <button key={p.id} onClick={() => { setPlatform(p.id); setError(''); }}
-                    className={`flex items-center gap-2.5 px-5 py-3 rounded-xl border font-semibold text-sm transition-all ${
+                    className={`flex-1 sm:flex-none flex items-center justify-center sm:justify-start gap-2 sm:gap-2.5 px-4 sm:px-5 py-3 rounded-xl border font-semibold text-sm transition-all ${
                       platform === p.id ? 'border-green bg-green/10 text-green' : 'border-border text-muted2 hover:border-green/30'
                     }`}>
                     <span>{p.icon}</span>{p.label}
@@ -381,19 +429,19 @@ export default function OnboardingPage() {
               {/* WhatsApp panel */}
               {platform === 'whatsapp' && (
                 <div>
-                  <div className="card p-6 mb-6 space-y-4">
+                  <div className="card p-4 sm:p-6 mb-6 space-y-3 sm:space-y-4">
                     {[
                       { n:1, title:'Create a Meta App', desc:<>Go to <a href="https://developers.facebook.com" target="_blank" className="text-green">developers.facebook.com</a> → Create App → Business → Add WhatsApp.</> },
                       { n:2, title:'Get Phone Number ID & Token', desc:'In Meta App → WhatsApp → API Setup.' },
-                      { n:3, title:'Set the Webhook URL', desc:'Paste your BotFlow webhook URL in Meta\'s webhook config.' },
+                      { n:3, title:'Set the Webhook URL', desc:"Paste your BotFlow webhook URL in Meta's webhook config." },
                     ].map(({ n, title, desc }) => (
-                      <div key={n} className="flex gap-4">
-                        <div className="w-8 h-8 bg-green/10 border border-green/30 rounded-full flex items-center justify-center font-syne font-bold text-green text-sm shrink-0">{n}</div>
-                        <div><h4 className="font-semibold text-white text-sm mb-1">{title}</h4><p className="text-muted2 text-xs">{desc}</p></div>
+                      <div key={n} className="flex gap-3 sm:gap-4">
+                        <div className="w-7 h-7 sm:w-8 sm:h-8 bg-green/10 border border-green/30 rounded-full flex items-center justify-center font-syne font-bold text-green text-xs sm:text-sm shrink-0">{n}</div>
+                        <div><h4 className="font-semibold text-white text-sm mb-0.5 sm:mb-1">{title}</h4><p className="text-muted2 text-xs">{desc}</p></div>
                       </div>
                     ))}
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Input label="Phone Number ID" placeholder="123456789012345" value={waPhoneId} onChange={e=>setWaPhoneId(e.target.value)} />
                     <Input label="WhatsApp Number" type="tel" placeholder="+91 98765 43210" value={waNumber} onChange={e=>setWaNumber(e.target.value)} />
                   </div>
@@ -404,15 +452,15 @@ export default function OnboardingPage() {
               {/* Telegram panel */}
               {platform === 'telegram' && (
                 <div>
-                  <div className="card p-6 mb-6 space-y-4">
+                  <div className="card p-4 sm:p-6 mb-6 space-y-3 sm:space-y-4">
                     {[
                       { n:1, title:'Open BotFather', desc:<>In Telegram search for <span className="text-green font-semibold">@BotFather</span> and send <span className="text-green font-mono">/newbot</span></> },
                       { n:2, title:'Create your bot', desc:'Enter a name and username (must end in "bot"). BotFather gives you a token.' },
                       { n:3, title:'Paste the token below', desc:'BotFlow will register the webhook with Telegram automatically.' },
                     ].map(({ n, title, desc }) => (
-                      <div key={n} className="flex gap-4">
-                        <div className="w-8 h-8 bg-green/10 border border-green/30 rounded-full flex items-center justify-center font-syne font-bold text-green text-sm shrink-0">{n}</div>
-                        <div><h4 className="font-semibold text-white text-sm mb-1">{title}</h4><p className="text-muted2 text-xs">{desc}</p></div>
+                      <div key={n} className="flex gap-3 sm:gap-4">
+                        <div className="w-7 h-7 sm:w-8 sm:h-8 bg-green/10 border border-green/30 rounded-full flex items-center justify-center font-syne font-bold text-green text-xs sm:text-sm shrink-0">{n}</div>
+                        <div><h4 className="font-semibold text-white text-sm mb-0.5 sm:mb-1">{title}</h4><p className="text-muted2 text-xs">{desc}</p></div>
                       </div>
                     ))}
                   </div>
@@ -421,9 +469,9 @@ export default function OnboardingPage() {
                 </div>
               )}
 
-              <div className="flex justify-between mt-12 pt-8 border-t border-border">
-                <Button variant="secondary" onClick={() => go(3)}>← Back</Button>
-                <Button loading={loading} onClick={handleStep4}>
+              <div className="flex justify-between mt-8 sm:mt-12 pt-6 sm:pt-8 border-t border-border gap-3">
+                <Button variant="secondary" onClick={() => go(3)} className="flex-1 sm:flex-none">← Back</Button>
+                <Button loading={loading} onClick={handleStep4} className="flex-1 sm:flex-none">
                   {(platform === 'whatsapp' && !waPhoneId && !waToken) || (platform === 'telegram' && !tgToken)
                     ? 'Skip & Continue →' : 'Verify & Continue →'}
                 </Button>
@@ -431,35 +479,35 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {/* Step 5 */}
+          {/* ── Step 5 ── */}
           {step === 5 && (
             <div className="animate-fadeUp">
               <p className="text-xs font-semibold text-green uppercase tracking-widest mb-2">Step 5 — Launch</p>
-              <h2 className="text-4xl font-extrabold font-syne text-white mb-2">Everything looks good?</h2>
-              <p className="text-muted2 text-base mb-10">Review your configuration before going live.</p>
+              <h2 className="text-2xl sm:text-4xl font-extrabold font-syne text-white mb-2">Everything looks good?</h2>
+              <p className="text-muted2 text-sm sm:text-base mb-8">Review your configuration before going live.</p>
 
               <div className="space-y-3">
                 {[
-                  { icon:'🏢', label:'Business',     value: bizName || '—',   editStep: 1 },
-                  { icon:'💬', label:'Bot Name',     value: botName || '—',   editStep: 1 },
-                  { icon:'🧠', label:'AI Model',     value: MODELS.find(m=>m.id===model)?.name + ' · ' + tone, editStep: 3 },
-                  { icon:'💬', label:'WhatsApp',     value: waNumber || (tgToken ? '—' : 'Skipped'), editStep: 4 },
-                  { icon:'✈️', label:'Telegram',     value: tgToken ? 'Connected' : (waNumber ? '—' : 'Skipped'), editStep: 4 },
+                  { icon:'🏢', label:'Business',  value: bizName || '—',  editStep: 1 },
+                  { icon:'💬', label:'Bot Name',  value: botName || '—',  editStep: 1 },
+                  { icon:'🧠', label:'AI Model',  value: (MODELS.find(m=>m.id===model)?.name || model) + ' · ' + tone, editStep: 3 },
+                  { icon:'💬', label:'WhatsApp',  value: waNumber || (tgToken ? '—' : 'Skipped'), editStep: 4 },
+                  { icon:'✈️', label:'Telegram',  value: tgToken ? 'Connected' : (waNumber ? '—' : 'Skipped'), editStep: 4 },
                 ].map(({ icon, label, value, editStep }) => (
-                  <div key={label} className="card px-5 py-4 flex items-center gap-4">
-                    <span className="text-xl">{icon}</span>
-                    <div className="flex-1">
+                  <div key={label} className="card px-4 sm:px-5 py-3.5 sm:py-4 flex items-center gap-3 sm:gap-4">
+                    <span className="text-lg sm:text-xl shrink-0">{icon}</span>
+                    <div className="flex-1 min-w-0">
                       <div className="text-xs text-muted uppercase tracking-wider font-semibold">{label}</div>
-                      <div className="text-white font-medium">{value}</div>
+                      <div className="text-white font-medium text-sm truncate">{value}</div>
                     </div>
-                    <button onClick={() => go(editStep)} className="text-green text-xs hover:opacity-70">Edit</button>
+                    <button onClick={() => go(editStep)} className="text-green text-xs hover:opacity-70 shrink-0">Edit</button>
                   </div>
                 ))}
               </div>
 
-              <div className="flex justify-between mt-12 pt-8 border-t border-border">
-                <Button variant="secondary" onClick={() => go(4)}>← Back</Button>
-                <Button loading={loading} onClick={handleLaunch} className="px-12 py-4 text-base">
+              <div className="flex justify-between mt-8 sm:mt-12 pt-6 sm:pt-8 border-t border-border gap-3">
+                <Button variant="secondary" onClick={() => go(4)} className="flex-1 sm:flex-none">← Back</Button>
+                <Button loading={loading} onClick={handleLaunch} className="flex-1 sm:flex-none text-base">
                   🚀 Launch Bot
                 </Button>
               </div>
