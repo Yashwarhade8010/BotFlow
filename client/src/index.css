@@ -1,0 +1,78 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0A0F0D;
+    color: #C8DDD6;
+    font-family: 'DM Sans', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: #111916; }
+  ::-webkit-scrollbar-thumb { background: #1E2D27; border-radius: 3px; }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-green text-dark font-syne font-bold px-6 py-3 rounded-xl transition-all duration-200
+           hover:bg-[#00ff7f] hover:-translate-y-0.5 hover:shadow-[0_8px_28px_rgba(0,212,106,0.3)]
+           disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none;
+  }
+  .btn-secondary {
+    @apply bg-transparent border border-border text-muted2 font-syne font-semibold px-5 py-2.5
+           rounded-xl transition-all duration-200 hover:border-border2 hover:text-text;
+  }
+  .btn-danger {
+    @apply bg-transparent border border-red/30 text-red font-syne font-semibold px-5 py-2.5
+           rounded-xl transition-all duration-200 hover:bg-red/10;
+  }
+  .card {
+    @apply bg-card border border-border rounded-2xl;
+  }
+  .input {
+    @apply w-full bg-dark2 border border-border rounded-xl px-4 py-3 text-text
+           font-dm text-sm outline-none transition-colors duration-200
+           focus:border-green focus:shadow-[0_0_0_3px_rgba(0,212,106,0.08)]
+           placeholder:text-muted;
+  }
+  .label {
+    @apply block text-xs font-semibold tracking-widest text-muted2 uppercase font-syne mb-1.5;
+  }
+  .badge-live    { @apply text-xs font-bold px-2 py-0.5 rounded-full bg-green/15 text-green; }
+  .badge-paused  { @apply text-xs font-bold px-2 py-0.5 rounded-full bg-yellow/15 text-yellow; }
+  .badge-draft   { @apply text-xs font-bold px-2 py-0.5 rounded-full bg-muted/20 text-muted2; }
+  .status-active    { @apply bg-green/10 text-green; }
+  .status-resolved  { @apply bg-green/10 text-green; }
+  .status-escalated { @apply bg-yellow/10 text-yellow; }
+  .status-abandoned { @apply bg-muted/10 text-muted2; }
+}
+
+/* Toggle switch */
+.toggle {
+  width: 40px; height: 22px; border-radius: 11px;
+  background: #1E2D27; border: 1px solid #2A3F37;
+  position: relative; cursor: pointer; transition: background 0.2s;
+  flex-shrink: 0;
+}
+.toggle.on { background: rgba(0,212,106,0.3); border-color: rgba(0,212,106,0.5); }
+.toggle::after {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: #3A5548; transition: all 0.2s;
+}
+.toggle.on::after { left: 20px; background: #00D46A; }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fadeUp { animation: fadeUp 0.4s ease both; }
+
+@keyframes pulse-green {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0,212,106,0.4); }
+  50%       { box-shadow: 0 0 0 8px rgba(0,212,106,0); }
+}
+.pulse-green { animation: pulse-green 2s infinite; }
