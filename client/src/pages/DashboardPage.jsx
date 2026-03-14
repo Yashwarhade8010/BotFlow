@@ -560,7 +560,11 @@ function SettingsPanel({ bot, setBots, bots }) {
 
   if (!bot) return <EmptyState icon="⚙" title="No bot selected" description="Select a bot from the sidebar to view its settings." />;
 
-  const modelNames = { 'claude-3-5-sonnet-20241022':'Claude 3.5 Sonnet', 'gpt-4o':'GPT-4o', 'gemini-pro':'Gemini Pro','groq-llama-3.3-70b-versatile':'Groq' };
+  const modelNames = {
+    "claude-3-5-sonnet-20241022": "Claude 3.5 Sonnet",
+    "gpt-4o": "GPT-4o",
+    "groq-llama-3.3-70b-versatile": "Groq",
+  };
 
   return (
     <div className="max-w-2xl space-y-6 animate-fadeUp">

@@ -13,9 +13,30 @@ const STEPS = [
 ];
 
 const MODELS = [
-  { id: 'gpt-4o',                    icon: '🧠', name: 'GPT-4o',      desc: "OpenAI's most capable.",      tag: '⚡ Premium',   tagColor: '#ffb400' },
-  { id: 'claude-3-5-sonnet-20241022',icon: '✦',  name: 'Claude 3.5',  desc: 'Best for customer service.',  tag: '✓ Recommended', tagColor: '#00D46A' },
-  { id: 'groq-mixtral-8x7b-32768',    icon: '🔥', name: 'Mixtral 8x7B',    desc: 'Great for multilingual.',     tag: '🚀 Fast',        tagColor: '#a855f7' },
+  {
+    id: "gpt-4o",
+    icon: "🧠",
+    name: "GPT-4o",
+    desc: "OpenAI's most capable.",
+    tag: "⚡ Premium",
+    tagColor: "#ffb400",
+  },
+  {
+    id: "claude-3-5-sonnet-20241022",
+    icon: "✦",
+    name: "Claude 3.5",
+    desc: "Best for customer service.",
+    tag: "✓ Recommended",
+    tagColor: "#00D46A",
+  },
+  {
+    id: "groq-llama-3.3-70b-versatile",
+    icon: "🔥",
+    name: "Mixtral 8x7B",
+    desc: "Great for multilingual.",
+    tag: "🚀 Fast",
+    tagColor: "#a855f7",
+  },
 ];
 
 const TONES = [
