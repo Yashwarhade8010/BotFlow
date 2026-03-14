@@ -23,17 +23,36 @@ const {
 const app = express();
 
 app.use(helmet());
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true,
-  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
-  allowedHeaders: ['Content-Type','Authorization'],
-}));
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://bot-flow-ten.vercel.app",
+  "https://bot-flow-coral.vercel.app",
+  process.env.FRONTEND_URL,
+].filter(Boolean);
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (
+        !origin ||
+        allowedOrigins.some((o) => origin.startsWith(o.replace(/\/$/, "")))
+      ) {
+        callback(null, true);
+      } else {
+        callback(new Error(`CORS blocked: ${origin}`));
+      }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 
 const limiter = rateLimit({ windowMs: 15*60*1000, max: 200 });
 const authLimiter = rateLimit({ windowMs: 15*60*1000, max: 15 });
 
 // Raw body for webhooks (signature verification)
+app.use("/api/webhook", express.raw({ type: "application/json" }));
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -129,4 +148,7 @@ async function start() {
   process.on('SIGINT',  () => server.close(() => process.exit(0)));
 }
 
-start().catch(err => { logger.error('Startup failed:', err); process.exit(1); });
+start().catch((err) => {
+  logger.error("Startup failed:", err);
+  process.exit(1);
+});

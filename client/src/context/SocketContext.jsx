@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 import { useAuth } from './AuthContext';
+const SOCKET_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
 
 const SocketContext = createContext(null);
 
@@ -13,9 +14,9 @@ export function SocketProvider({ children }) {
     const token = localStorage.getItem('bf_token');
     if (!token || !user) return;
 
-    socketRef.current = io('/', {
+    socketRef.current = io(SOCKET_URL, {
       auth: { token },
-      transports: ['websocket','polling'],
+      transports: ["websocket", "polling"],
     });
 
     socketRef.current.on('connect',    () => setConnected(true));

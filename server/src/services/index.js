@@ -19,72 +19,67 @@ function buildSystemPrompt(bot, chunks) {
 
 async function generateReply(bot, history, userMessage) {
   const startTime = Date.now();
-  console.log('generateReply START - model:', bot.aiModel);
-  const chunks = await knowledgeService.retrieveRelevantChunks(bot.id, userMessage, 5);
-  console.log('Chunks retrieved:', chunks.length);
-  const systemPrompt = bot.systemPromptOverride || buildSystemPrompt(bot, chunks);
-  console.log('System prompt built, length:', systemPrompt.length);
+  const chunks = await knowledgeService.retrieveRelevantChunks(
+    bot.id,
+    userMessage,
+    5
+  );
+  const systemPrompt =
+    bot.systemPromptOverride || buildSystemPrompt(bot, chunks);
 
-  const messages = history.slice(-20).map(m => ({
-    role: m.role === 'assistant' ? 'assistant' : 'user',
+  const messages = history.slice(-20).map((m) => ({
+    role: m.role === "assistant" ? "assistant" : "user",
     content: m.content,
   }));
-  messages.push({ role: 'user', content: userMessage });
+  messages.push({ role: "user", content: userMessage });
 
-  let reply = '', tokensUsed = 0;
-  const model = bot.aiModel || 'claude-3-5-sonnet-20241022';
-  console.log('Calling AI model:', model);
+  let reply = "",
+    tokensUsed = 0;
+  const model = bot.aiModel || "claude-3-5-sonnet-20241022";
 
   try {
-    if (model.startsWith('claude')) {
-      const Anthropic = require('@anthropic-ai/sdk');
+    if (model.startsWith("claude")) {
+      const Anthropic = require("@anthropic-ai/sdk");
       const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
       const response = await client.messages.create({
-        model, max_tokens: bot.maxTokens || 500, system: systemPrompt,
-        messages, temperature: bot.temperature ?? 0.4,
+        model,
+        max_tokens: bot.maxTokens || 500,
+        system: systemPrompt,
+        messages,
+        temperature: bot.temperature ?? 0.4,
       });
       reply = response.content[0].text;
       tokensUsed = response.usage.input_tokens + response.usage.output_tokens;
-    } else if (model.startsWith('gpt')) {
-      const OpenAI = require('openai');
+    } else if (model.startsWith("gpt")) {
+      const OpenAI = require("openai");
       const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
       const response = await client.chat.completions.create({
-        model, messages: [{ role: 'system', content: systemPrompt }, ...messages],
-        max_tokens: bot.maxTokens || 500, temperature: bot.temperature ?? 0.4,
-      });
-      reply = response.choices[0].message.content;
-      tokensUsed = response.usage.total_tokens;
-    } else if (model.startsWith('groq-')) {
-      const OpenAI = require('openai');
-      const client = new OpenAI({
-        apiKey: process.env.GROQ_API_KEY,
-        baseURL: 'https://api.groq.com/openai/v1',
-      });
-      const groqModel = model.startsWith('groq-') ? model.slice(5) : model;
-console.log('Groq model name:', groqModel);
-      const response = await client.chat.completions.create({
-        model: groqModel,
-        messages: [{ role: 'system', content: systemPrompt }, ...messages],
+        model,
+        messages: [{ role: "system", content: systemPrompt }, ...messages],
         max_tokens: bot.maxTokens || 500,
         temperature: bot.temperature ?? 0.4,
       });
       reply = response.choices[0].message.content;
       tokensUsed = response.usage.total_tokens;
-    } else if (model === 'gemini-pro') {
-      const axios = require('axios');
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GOOGLE_GEMINI_API_KEY}`;
+    } else if (model === "gemini-pro") {
+      const axios = require("axios");
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.GOOGLE_GEMINI_API_KEY}`;
       const response = await axios.post(url, {
         systemInstruction: { parts: [{ text: systemPrompt }] },
-        contents: messages.map(m => ({ role: m.role==='assistant'?'model':'user', parts: [{ text: m.content }] })),
-        generationConfig: { temperature: bot.temperature ?? 0.4, maxOutputTokens: bot.maxTokens || 500 },
+        contents: messages.map((m) => ({
+          role: m.role === "assistant" ? "model" : "user",
+          parts: [{ text: m.content }],
+        })),
+        generationConfig: {
+          temperature: bot.temperature ?? 0.4,
+          maxOutputTokens: bot.maxTokens || 500,
+        },
       });
       reply = response.data.candidates[0].content.parts[0].text;
       tokensUsed = response.data.usageMetadata?.totalTokenCount || 0;
     }
   } catch (err) {
-    console.log(`AI ERROR [${model}]:`, err.message);
-    console.log('AI ERROR details:', JSON.stringify(err.response?.data));
-    console.log('AI ERROR status:', err.status || err.response?.status);
+    logger.error(`AI error [${model}]:`, err.message);
     reply = "I'm having trouble right now. Please try again in a moment.";
   }
 
@@ -205,10 +200,27 @@ let _io = null;
 function initSocket(server) {
   const { Server } = require('socket.io');
   const jwt = require('jsonwebtoken');
+  const allowedOrigins = [
+    "http://localhost:3000",
+    "https://bot-flow-ten.vercel.app",
+    "https://bot-flow-coral.vercel.app",
+    process.env.FRONTEND_URL,
+  ].filter(Boolean);
+
   _io = new Server(server, {
     cors: {
-      origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-      methods: ['GET','POST'],
+      origin: (origin, callback) => {
+        if (
+          !origin ||
+          allowedOrigins.some((o) => origin.startsWith(o.replace(/\/$/, "")))
+        ) {
+          callback(null, true);
+        } else {
+          callback(new Error(`Socket CORS blocked: ${origin}`));
+        }
+      },
+      methods: ["GET", "POST"],
+      credentials: true,
     },
   });
 
@@ -238,9 +250,19 @@ module.exports = {
   // AI
   generateReply,
   // WhatsApp
-  sendMessage, markAsRead, verifyWebhook, parseWebhookPayload,
+  sendMessage,
+  markAsRead,
+  verifyWebhook,
+  parseWebhookPayload,
   // Telegram
-  sendTelegramMessage, setTelegramWebhook, deleteTelegramWebhook, getTelegramBotInfo, parseTelegramPayload,
+  sendTelegramMessage,
+  setTelegramWebhook,
+  deleteTelegramWebhook,
+  getTelegramBotInfo,
+  parseTelegramPayload,
   // Socket
-  initSocket, emitToUser, emitToBot, getIO,
+  initSocket,
+  emitToUser,
+  emitToBot,
+  getIO,
 };
