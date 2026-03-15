@@ -4,6 +4,7 @@ const { Conversation, Message, Bot } = require('../models/index');
 const asyncHandler = require('../utils/asyncHandler');
 const { success, error, paginated } = require('../utils/apiResponse');
 const { emitToUser, emitToBot } = require('../services/index');
+const whatsappService = require("../services/index");
 
 // GET /api/conversations
 const getConversations = asyncHandler(async (req, res) => {
@@ -68,11 +69,14 @@ const agentReply = asyncHandler(async (req, res) => {
   // Send via WhatsApp
   const bot = conversation.bot;
   if (bot?.waConnected && bot?.waPhoneNumberId && bot?.waAccessToken) {
-    const whatsappService = require('../services/whatsappService');
-    await whatsappService.sendMessage(
-      bot.waPhoneNumberId, bot.waAccessToken,
-      conversation.customerWaId, message
-    ).catch(() => {});
+    await whatsappService
+      .sendMessage(
+        bot.waPhoneNumberId,
+        bot.waAccessToken,
+        conversation.customerWaId,
+        message
+      )
+      .catch(() => {});
   }
 
   emitToBot(conversation.botId, 'conversation:message', {
