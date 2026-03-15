@@ -61,22 +61,22 @@ async function generateReply(bot, history, userMessage) {
       });
       reply = response.choices[0].message.content;
       tokensUsed = response.usage.total_tokens;
-    } else if (model === "gemini-pro") {
-      const axios = require("axios");
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.GOOGLE_GEMINI_API_KEY}`;
-      const response = await axios.post(url, {
-        systemInstruction: { parts: [{ text: systemPrompt }] },
-        contents: messages.map((m) => ({
-          role: m.role === "assistant" ? "model" : "user",
-          parts: [{ text: m.content }],
-        })),
-        generationConfig: {
-          temperature: bot.temperature ?? 0.4,
-          maxOutputTokens: bot.maxTokens || 500,
-        },
+    } else if (model.startsWith('groq-')) {
+      const OpenAI = require('openai');
+      const client = new OpenAI({
+        apiKey: process.env.GROQ_API_KEY,
+        baseURL: 'https://api.groq.com/openai/v1',
       });
-      reply = response.data.candidates[0].content.parts[0].text;
-      tokensUsed = response.data.usageMetadata?.totalTokenCount || 0;
+      const groqModel = model.slice(5); // strips 'groq-' prefix → 'llama-3.3-70b-versatile'
+      const response = await client.chat.completions.create({
+        model: groqModel,
+        messages: [{ role: 'system', content: systemPrompt }, ...messages],
+        max_tokens: bot.maxTokens || 500,
+        temperature: bot.temperature ?? 0.4,
+      });
+      reply = response.choices[0].message.content;
+      tokensUsed = response.usage.total_tokens;
+    
     }
   } catch (err) {
     logger.error(`AI error [${model}]:`, err.message);
