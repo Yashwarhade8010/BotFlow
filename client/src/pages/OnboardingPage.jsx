@@ -60,6 +60,7 @@ export default function OnboardingPage() {
   const [waToken, setWaToken]     = useState('');
   const [waNumber, setWaNumber]   = useState('');
   const [tgToken, setTgToken]     = useState('');
+  const [webhookInfo, setWebhookInfo] = useState(null);
 
   const go = (s) => { setError(''); setStep(s); setStepsOpen(false); window.scrollTo(0,0); };
 

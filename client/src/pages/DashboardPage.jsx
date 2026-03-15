@@ -1447,25 +1447,6 @@ function SettingsPanel({ bot, setBots, bots }) {
               </button>
             </div>
           </div>
-          <div>
-            <label className="label">Verify Token</label>
-            <div className="flex items-center gap-2">
-              <code className="flex-1 bg-dark3 border border-border rounded-lg px-3 py-2 text-xs text-green font-mono truncate">
-                {bot.whatsapp?.verifyToken || "—"}
-              </code>
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(
-                    bot.whatsapp?.verifyToken || ""
-                  );
-                  toast.success("Copied!");
-                }}
-                className="btn-secondary text-xs px-3 py-2 shrink-0"
-              >
-                Copy
-              </button>
-            </div>
-          </div>
         </div>
       </div>
       {/* Danger zone */}
