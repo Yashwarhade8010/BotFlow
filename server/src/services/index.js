@@ -5,16 +5,26 @@ const knowledgeService = require('./knowledgeService');
 
 function buildSystemPrompt(bot, chunks) {
   const toneMap = {
-    friendly:     'You are warm, conversational, and use emoji occasionally.',
-    professional: 'You are formal, precise, and avoid casual language.',
-    playful:      'You are fun, energetic, and use light humor.',
-    concise:      'You keep responses short and direct — 1-3 sentences max.',
+    friendly: "You are warm, conversational, and use emoji occasionally.",
+    professional: "You are formal, concise, and professional.",
+    casual: "You are relaxed, friendly, and use simple language.",
+    enthusiastic: "You are energetic, positive, and encouraging.",
   };
+
   const tone = toneMap[bot.personality] || toneMap.friendly;
   const context = chunks.length
-    ? `\n\nKNOWLEDGE BASE:\n${chunks.map((c,i) => `[${i+1}] ${c}`).join('\n\n')}`
-    : '';
-  return `You are ${bot.name}, a WhatsApp AI assistant for ${bot.businessName || 'a business'}.\n${tone}\nOnly answer questions using the knowledge base below. If unsure, say you'll connect them to a human and include [HANDOFF_REQUESTED].${context}`;
+    ? `\n\nKnowledge base:\n${chunks.map((c) => c.text).join("\n\n")}`
+    : "";
+
+  const handoffInstruction = bot.humanHandoff
+    ? `\n\nIMPORTANT: If the customer asks to speak to a human, agent, or person, OR if you cannot confidently answer their question from the knowledge base, end your reply with exactly: [HANDOFF_REQUESTED]`
+    : "";
+
+  return `You are ${bot.botName || "an AI assistant"} for ${
+    bot.businessName || "this business"
+  }. ${tone}${context}${handoffInstruction}
+
+Reply concisely. Only answer based on the provided information. If you don't know something, say so honestly.`;
 }
 
 async function generateReply(bot, history, userMessage) {
