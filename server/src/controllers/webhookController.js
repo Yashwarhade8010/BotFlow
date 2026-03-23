@@ -63,8 +63,6 @@ async function processIncomingMessage(bot, msg) {
   const { from, text, messageId, profileName } = msg;
   if (!text?.trim()) return;
 
-  const botSettings = bot.settings || {};
-
   // ── Find or create conversation ──
   // Only match active/escalated conversations — ignore resolved/abandoned
   const { Op } = require("sequelize");
@@ -116,7 +114,7 @@ async function processIncomingMessage(bot, msg) {
     );
   }
 
-  // ── Emit to dashboard in real time ──
+  // ── Emit user message to dashboard in real time ──
   emitToBot(bot.id, "conversation:message", {
     conversationId: conversation.id,
     message: userMsg,
@@ -135,10 +133,9 @@ async function processIncomingMessage(bot, msg) {
   }));
 
   const ai = await generateReply(bot, history, text);
-  console.log("AI reply:", ai.reply);
-  console.log("handoffRequested:", ai.handoffRequested);
-  console.log("bot.humanHandoff:", bot.humanHandoff);
-  console.log("confidence:", ai.confidence);
+  logger.info(
+    `AI reply for bot ${bot.name}: handoffRequested=${ai.handoffRequested}, humanHandoff=${bot.humanHandoff}`
+  );
 
   // ── Guard against empty reply ──
   const replyText =
@@ -170,11 +167,9 @@ async function processIncomingMessage(bot, msg) {
     model: ai.model,
   });
 
-  // ── Handle handoff ──
-  const shouldHandoff =
-    ai.handoffRequested ||
-    (botSettings.humanHandoff &&
-      ai.confidence < (botSettings.humanHandoffThreshold || 0.65));
+  // ── Handle handoff — ONLY trigger on explicit AI request, not confidence ──
+  // bot.humanHandoff must be true AND AI must have included [HANDOFF_REQUESTED]
+  const shouldHandoff = ai.handoffRequested && bot.humanHandoff;
 
   if (shouldHandoff) {
     await Conversation.update(

@@ -71,33 +71,62 @@ async function generateReply(bot, history, userMessage) {
       });
       reply = response.choices[0].message.content;
       tokensUsed = response.usage.total_tokens;
-    } else if (model.startsWith('groq-')) {
-      const OpenAI = require('openai');
+    } else if (model.startsWith("groq-")) {
+      const OpenAI = require("openai");
       const client = new OpenAI({
         apiKey: process.env.GROQ_API_KEY,
-        baseURL: 'https://api.groq.com/openai/v1',
+        baseURL: "https://api.groq.com/openai/v1",
       });
       const groqModel = model.slice(5); // strips 'groq-' prefix → 'llama-3.3-70b-versatile'
       const response = await client.chat.completions.create({
         model: groqModel,
-        messages: [{ role: 'system', content: systemPrompt }, ...messages],
+        messages: [{ role: "system", content: systemPrompt }, ...messages],
         max_tokens: bot.maxTokens || 500,
         temperature: bot.temperature ?? 0.4,
       });
       reply = response.choices[0].message.content;
       tokensUsed = response.usage.total_tokens;
-    
+    } else if (model === "gemini-pro" || model === "gemini-1.5-flash") {
+      const axios = require("axios");
+      const geminiModel = "gemini-1.5-flash";
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${process.env.GOOGLE_GEMINI_API_KEY}`;
+      const geminiMessages = [
+        { role: "user", parts: [{ text: systemPrompt }] },
+        { role: "model", parts: [{ text: "Understood." }] },
+        ...messages.map((m) => ({
+          role: m.role === "assistant" ? "model" : "user",
+          parts: [{ text: m.content }],
+        })),
+      ];
+      const response = await axios.post(
+        url,
+        { contents: geminiMessages },
+        { timeout: 15000 }
+      );
+      reply = response.data.candidates[0].content.parts[0].text;
+      tokensUsed = response.data.usageMetadata?.totalTokenCount || 0;
     }
   } catch (err) {
-    logger.error(`AI error [${model}]:`, err.message);
+    logger.error(`AI error [${model}]: ${err.message}`);
     reply = "I'm having trouble right now. Please try again in a moment.";
   }
 
-  const handoffRequested = reply.includes('[HANDOFF_REQUESTED]');
-  if (handoffRequested) reply = reply.replace('[HANDOFF_REQUESTED]', '').trim();
-  const confidence = reply.length > 80 && !reply.toLowerCase().includes("i don't have") ? 0.85 : 0.55;
+  // ── Handoff detection — only from explicit [HANDOFF_REQUESTED] flag ──
+  const handoffRequested = reply.includes("[HANDOFF_REQUESTED]");
+  if (handoffRequested) reply = reply.replace("[HANDOFF_REQUESTED]", "").trim();
 
-  return { reply, tokensUsed, confidence, handoffRequested, responseTimeMs: Date.now() - startTime, model };
+  // ── Confidence is high by default; only low when AI explicitly requests handoff ──
+  // Do NOT base confidence on reply length — short replies like "Hello! How can I help?" are valid
+  const confidence = handoffRequested ? 0.4 : 0.85;
+
+  return {
+    reply,
+    tokensUsed,
+    confidence,
+    handoffRequested,
+    responseTimeMs: Date.now() - startTime,
+    model,
+  };
 }
 
 // ── WhatsApp Service ───────────────────────────────
