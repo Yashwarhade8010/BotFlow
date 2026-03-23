@@ -169,7 +169,8 @@ async function processIncomingMessage(bot, msg) {
 
   // ── Handle handoff — ONLY trigger on explicit AI request, not confidence ──
   // bot.humanHandoff must be true AND AI must have included [HANDOFF_REQUESTED]
-  const shouldHandoff = ai.handoffRequested && bot.humanHandoff;
+  const humanHandoffEnabled = bot.settings?.humanHandoff ?? true;
+  const shouldHandoff = ai.handoffRequested && humanHandoffEnabled;
 
   if (shouldHandoff) {
     await Conversation.update(
