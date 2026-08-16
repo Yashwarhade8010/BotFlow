@@ -16,7 +16,7 @@ function buildSystemPrompt(bot, chunks) {
     ? `\n\nKnowledge base:\n${chunks.map((c) => c.text).join("\n\n")}`
     : "";
 
-  const handoffInstruction = bot.humanHandoff
+  const handoffInstruction = isHumanHandoffEnabled(bot)
     ? `\n\nIMPORTANT: If the customer asks to speak to a human, agent, or person, OR if you cannot confidently answer their question from the knowledge base, end your reply with exactly: [HANDOFF_REQUESTED]`
     : "";
 
@@ -27,6 +27,18 @@ function buildSystemPrompt(bot, chunks) {
 Reply concisely. Only answer based on the provided information. If you don't know something, say so honestly.`;
 }
 
+function isHumanHandoffEnabled(bot) {
+  return bot.settings?.humanHandoff ?? true;
+}
+
+function withHandoffInstruction(prompt, bot) {
+  if (!isHumanHandoffEnabled(bot) || prompt.includes("[HANDOFF_REQUESTED]")) {
+    return prompt;
+  }
+
+  return `${prompt}\n\nIMPORTANT: If the customer asks to speak to a human, agent, or person, OR if you cannot confidently answer from the available information, end your reply with exactly: [HANDOFF_REQUESTED]`;
+}
+
 async function generateReply(bot, history, userMessage) {
   const startTime = Date.now();
   const chunks = await knowledgeService.retrieveRelevantChunks(
@@ -34,8 +46,10 @@ async function generateReply(bot, history, userMessage) {
     userMessage,
     5
   );
-  const systemPrompt =
-    bot.systemPromptOverride || buildSystemPrompt(bot, chunks);
+  const systemPrompt = withHandoffInstruction(
+    bot.systemPromptOverride || buildSystemPrompt(bot, chunks),
+    bot
+  );
 
   const messages = history.slice(-20).map((m) => ({
     role: m.role === "assistant" ? "assistant" : "user",

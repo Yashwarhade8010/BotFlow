@@ -3,7 +3,7 @@ const { Op } = require('sequelize');
 const { Conversation, Message, Bot } = require('../models/index');
 const asyncHandler = require('../utils/asyncHandler');
 const { success, error, paginated } = require('../utils/apiResponse');
-const { emitToUser, emitToBot } = require('../services/index');
+const { emitToBot } = require('../services/index');
 const whatsappService = require("../services/index");
 
 // GET /api/conversations
@@ -48,6 +48,7 @@ const getConversation = asyncHandler(async (req, res) => {
 // POST /api/conversations/:id/reply
 const agentReply = asyncHandler(async (req, res) => {
   const { message } = req.body;
+  if (!message?.trim()) return error(res, 'Message is required', 400);
   const conversation = await Conversation.findOne({
     where: { id: req.params.id, userId: req.user.id },
     include: [{ model: Bot, as: 'bot' }],
@@ -66,9 +67,12 @@ const agentReply = asyncHandler(async (req, res) => {
     messageCount: (conversation.messageCount || 0) + 1,
   });
 
-  // Send via WhatsApp
+  // Send through the same channel the customer used.
   const bot = conversation.bot;
-  if (bot?.waConnected && bot?.waPhoneNumberId && bot?.waAccessToken) {
+  if (conversation.platform === 'telegram' && bot?.tgConnected && bot?.tgBotToken) {
+    const chatId = conversation.customerWaId.replace(/^tg:/, '');
+    await whatsappService.sendTelegramMessage(bot.tgBotToken, chatId, message).catch(() => {});
+  } else if (bot?.waConnected && bot?.waPhoneNumberId && bot?.waAccessToken) {
     await whatsappService
       .sendMessage(
         bot.waPhoneNumberId,
@@ -105,7 +109,7 @@ const handoffConversation = asyncHandler(async (req, res) => {
     handedOffAt: new Date(),
     handedOffToId: req.user.id,
   });
-  emitToUser(req.user.id, 'conversation:handoff', { conversationId: conversation.id });
+  emitToBot(conversation.botId, 'conversation:handoff', { conversationId: conversation.id });
   return success(res, { conversation }, 'Escalated to agent');
 });
 

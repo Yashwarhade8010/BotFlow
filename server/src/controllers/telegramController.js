@@ -36,7 +36,11 @@ async function processTelegramMessage(bot, msg) {
 
   console.log('Step 1: Finding conversation...');
   let conversation = await Conversation.findOne({
-    where: { botId: bot.id, customerWaId: `tg:${from}` },
+    where: {
+      botId: bot.id,
+      customerWaId: `tg:${from}`,
+      status: { [Op.in]: ['active', 'escalated'] },
+    },
     include: [{ model: Message, as: 'messages', order: [['createdAt','ASC']] }],
   });
 
@@ -83,6 +87,13 @@ console.log('Step 7: AI reply received:', ai.reply);
     conversationId: conversation.id, role: 'assistant', content: ai.reply,
     tokensUsed: ai.tokensUsed, responseTimeMs: ai.responseTimeMs, model: ai.model,
   });
+
+  const humanHandoffEnabled = bot.settings?.humanHandoff ?? true;
+  if (ai.handoffRequested && humanHandoffEnabled) {
+    await conversation.update({ status: 'escalated', handedOffAt: new Date() });
+    emitToBot(bot.id, 'conversation:handoff', { conversationId: conversation.id });
+    console.log(`Conversation ${conversation.id} escalated for bot ${bot.name}`);
+  }
 
   console.log(`Telegram bot ${bot.name} replied to ${from} in ${ai.responseTimeMs}ms`);
 }

@@ -374,6 +374,15 @@ function ConversationsPanel({ activeBotId, on, joinConversation }) {
     return unsub;
   }, [on, active, load]);
 
+  useEffect(() => {
+    if (!on) return;
+    const unsub = on("conversation:handoff", (data) => {
+      load();
+      if (data.conversationId !== active?.id) toast("A conversation needs a human reply");
+    });
+    return unsub;
+  }, [on, active, load]);
+
   const openConvo = async (c) => {
     setActive(c);
     setShowChat(true);
