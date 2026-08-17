@@ -42,10 +42,12 @@ const sequelize = new Sequelize(
 async function connectDB() {
   try {
     await sequelize.authenticate();
-    await sequelize.sync({ alter: true });
+    await sequelize.sync();
     logger.info("✅ MySQL connected via Sequelize");
   } catch (err) {
+    console.log(err);
     logger.error("❌ MySQL connection failed:", err.message);
+    console.log(err);
     process.exit(1);
   }
 }
